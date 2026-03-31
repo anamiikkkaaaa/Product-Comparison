@@ -43,20 +43,42 @@ def scrape_phone(phone_name, phone_url):
 def search_gsmarena(phone_name):
     import json
     import os
-    
+
     json_path = os.path.join(os.path.dirname(__file__), "phone_names_and_urls.json")
     with open(json_path, "r") as f:
         all_phones = json.load(f)
+
+    phone_name_lower = phone_name.lower().strip()
     
-    phone_name_lower = phone_name.lower()
-    
+    # First pass — exact match
+    for brand, models in all_phones.items():
+        for model, url in models.items():
+            full_name = f"{brand} {model}".lower().strip()
+            if phone_name_lower == full_name:
+                return {"name": f"{brand} {model}", "url": url}
+
+    # Second pass — phone name matches end of full name exactly
+    for brand, models in all_phones.items():
+        for model, url in models.items():
+            model_lower = model.lower().strip()
+            if phone_name_lower == model_lower:
+                return {"name": f"{brand} {model}", "url": url}
+
+    # Third pass — full name starts with search term and nothing extra
+    for brand, models in all_phones.items():
+        for model, url in models.items():
+            full_name = f"{brand} {model}".lower().strip()
+            if full_name.startswith(phone_name_lower) and (
+                len(full_name) == len(phone_name_lower) or
+                full_name[len(phone_name_lower)] == ' '
+            ):
+                return {"name": f"{brand} {model}", "url": url}
+
+    # Fourth pass — loose match as fallback
     for brand, models in all_phones.items():
         for model, url in models.items():
             full_name = f"{brand} {model}".lower()
-            if phone_name_lower in full_name or full_name in phone_name_lower:
-                return {
-                    "name": f"{brand} {model}",
-                    "url": url
-                }
-    
+            if phone_name_lower in full_name:
+                return {"name": f"{brand} {model}", "url": url}
+
     return None

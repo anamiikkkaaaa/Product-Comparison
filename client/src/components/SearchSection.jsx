@@ -6,8 +6,15 @@ function SearchSection({ onCompare, loading }) {
   const [preference, setPreference] = useState('')
 
   const handleCompare = () => {
-    if (!phone1 || !phone2) return
-    onCompare(phone1, phone2, preference)
+    if (!phone1.trim() || !phone2.trim()) {
+      alert('Please enter both phone names')
+      return
+    }
+    if (phone1.trim().toLowerCase() === phone2.trim().toLowerCase()) {
+      alert('Please enter two different phones')
+      return
+    }
+    onCompare(phone1.trim(), phone2.trim(), preference)
   }
 
   return (
