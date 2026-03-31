@@ -13,22 +13,24 @@ db = client["phone_compare"]
 collection = db["phones"]
 
 def scrape_phone_by_name(phone_name):
-    existing = collection.find_one({"name": {"$regex": phone_name, "$options": "i"}})
+    json_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "phone_names_and_urls.json")
+
+    existing = collection.find_one({"name": {"$regex": f"^{phone_name}$", "$options": "i"}})
     if existing:
         return existing
-    
-    result = search_gsmarena(phone_name)
+
+    result = search_gsmarena(phone_name, json_path)
     if not result:
         return None
-    
+
     data = scrape_phone(result["name"], result["url"])
-    
+
     collection.update_one(
         {"name": result["name"]},
         {"$set": data},
         upsert=True
     )
-    
+
     return data
 
 if __name__ == "__main__":
