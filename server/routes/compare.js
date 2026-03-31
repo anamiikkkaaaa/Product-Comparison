@@ -13,7 +13,7 @@ async function getOrScrapePhone(name) {
     if (existing) return existing
 
     // call scraper to get the correct full name and URL
-    const scrapeResponse = await axios.post("http://localhost:8000/scrape", {
+    const scrapeResponse = await axios.post(`${process.env.ANALYSIS_URL}/scrape`, {
       phone_name: name
     })
 
@@ -47,10 +47,7 @@ router.post("/", async (req, res) => {
         error: "One or both phones not found"
       });
     }
-
-    const analysisResponse = await axios.post(
-      "http://localhost:8000/analyse",
-      {
+    const analysisResponse = await axios.post(`${process.env.ANALYSIS_URL}/analyse`, {
         phone1: JSON.parse(JSON.stringify(results[0])),
         phone2: JSON.parse(JSON.stringify(results[1])),
         user_preference: user_preference || "general use"
