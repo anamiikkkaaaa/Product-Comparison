@@ -4,16 +4,28 @@ const Phone = require("../models/Phone");
 const axios = require("axios");
 
 async function getOrScrapePhone(name) {
-  const existing = await Phone.findOne({ name: new RegExp(name, "i") });
-  if (existing) return existing;
+  try {
+    // exact match only
+    let existing = await Phone.findOne({ 
+      name: { $regex: `^${name}$`, $options: "i" }
+    })
 
-  const scrapeResponse = await axios.post("http://localhost:8000/scrape", {
-    phone_name: name
-  });
+    if (existing) return existing
 
-  if (scrapeResponse.data.error) return null;
+    // call scraper to get the correct full name and URL
+    const scrapeResponse = await axios.post("http://localhost:8000/scrape", {
+      phone_name: name
+    })
 
-  return await Phone.findOne({ name: new RegExp(scrapeResponse.data.name, "i") });
+    if (scrapeResponse.data.error) return null
+
+    // use the exact name returned by scraper for lookup
+    return await Phone.findOne({ 
+      name: { $regex: `^${scrapeResponse.data.name}$`, $options: "i" }
+    })
+  } catch (err) {
+    return null
+  }
 }
 
 router.post("/", async (req, res) => {
@@ -53,8 +65,14 @@ router.post("/", async (req, res) => {
     });
 
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    if (err.code === 'ECONNREFUSED') {
+      return res.status(503).json({ 
+        error: "Analysis service is unavailable. Please try again later." 
+      })
+    }
+    res.status(500).json({ error: err.message })
   }
+
 });
 
 module.exports = router;
