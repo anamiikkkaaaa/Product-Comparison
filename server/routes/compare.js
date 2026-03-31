@@ -3,6 +3,19 @@ const router = express.Router();
 const Phone = require("../models/Phone");
 const axios = require("axios");
 
+async function getOrScrapePhone(name) {
+  const existing = await Phone.findOne({ name: new RegExp(name, "i") });
+  if (existing) return existing;
+
+  const scrapeResponse = await axios.post("http://localhost:8000/scrape", {
+    phone_name: name
+  });
+
+  if (scrapeResponse.data.error) return null;
+
+  return await Phone.findOne({ name: new RegExp(scrapeResponse.data.name, "i") });
+}
+
 router.post("/", async (req, res) => {
   try {
     const { phones, user_preference } = req.body;
@@ -14,9 +27,7 @@ router.post("/", async (req, res) => {
     }
 
     const results = await Promise.all(
-      phones.map(name =>
-        Phone.findOne({ name: new RegExp(name, "i") })
-      )
+      phones.map(name => getOrScrapePhone(name))
     );
 
     if (!results[0] || !results[1]) {
@@ -28,8 +39,8 @@ router.post("/", async (req, res) => {
     const analysisResponse = await axios.post(
       "http://localhost:8000/analyse",
       {
-        phone1: results[0].toObject(),
-        phone2: results[1].toObject(),
+        phone1: JSON.parse(JSON.stringify(results[0])),
+        phone2: JSON.parse(JSON.stringify(results[1])),
         user_preference: user_preference || "general use"
       }
     );

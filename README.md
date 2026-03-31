@@ -277,3 +277,71 @@ git push
 
 How the two Python services differ
 scraperanalysisJobpulls data from GSM Arenascores and analyses phone dataRunson demand / scheduledon every compare requestFrameworkplain PythonFastAPIPortnone8000
+
+13:04
+Here's everything for your README:
+
+Connecting Express to FastAPI
+What we did: Updated the compare route in Express to call the FastAPI analysis service, completing the full backend pipeline.
+
+What changed in compare.js
+Added axios to make HTTP requests from Express to FastAPI:
+
+npm install axios
+
+Added user_preference to the request body so the user can tell us what they care about.
+Called FastAPI from inside the compare route:
+
+const analysisResponse = await axios.post(
+  "http://localhost:8000/analyse",
+  {
+    phone1: results[0].toObject(),
+    phone2: results[1].toObject(),
+    user_preference: user_preference || "general use"
+  }
+);
+
+toObject() converts a Mongoose document to a plain JavaScript object before sending it to FastAPI.
+Final response now returns everything in one payload:
+
+res.json({
+  phone1: results[0],        // full specs
+  phone2: results[1],        // full specs
+  scores: analysisResponse.data.scores,    // numeric scores
+  verdict: analysisResponse.data.verdict   // LLM recommendation
+});
+```
+
+---
+
+### Full backend flow
+```
+Frontend
+  → POST /api/compare {phones, user_preference}
+  → Express fetches both phones from MongoDB
+  → Express calls FastAPI POST /analyse
+  → FastAPI scores phones + calls Groq LLM
+  → FastAPI returns {scores, verdict}
+  → Express returns {phone1, phone2, scores, verdict}
+  → Frontend
+
+
+To run the full backend
+You need three things running at the same time:
+Terminal 1 — Express:
+
+cd server
+node index.js
+
+Terminal 2 — FastAPI:
+
+cd analysis
+source .venv/bin/activate
+uvicorn main:app --reload --port 8000
+
+
+MongoDB Atlas — always running in the cloud, no action needed.
+
+Backend is now complete
+All three phases of the backend work together:
+ServiceLanguagePortJobExpressNode.js5000serves API, talks to MongoDBFastAPIPython8000scores phones, calls LLMMongoDBAtlascloudstores phone data
