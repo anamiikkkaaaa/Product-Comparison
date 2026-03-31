@@ -49,3 +49,9 @@ async def scrape(request: ScrapeRequest):
     if not data:
         return {"error": "Phone not found on GSM Arena"}
     return {"success": True, "name": data["name"]}
+
+@app.get("/debug")
+async def debug():
+    files = os.listdir(".")
+    parent_files = os.listdir("..")
+    return {"current_dir_files": files, "parent_dir_files": parent_files}
