@@ -34,17 +34,22 @@ def scrape_phone_by_name(phone_name):
     return data
 
 if __name__ == "__main__":
+    import time
     with open("phones.json", "r") as f:
         phones = json.load(f)
 
     for phone in phones:
         print(f"Scraping {phone['name']}...")
-        data = scrape_phone(phone["name"], phone["url"])
-        collection.update_one(
-            {"name": phone["name"]},
-            {"$set": data},
-            upsert=True
-        )
-        print(f"Saved {phone['name']} to MongoDB")
+        try:
+            data = scrape_phone(phone["name"], phone["url"])
+            collection.update_one(
+                {"name": phone["name"]},
+                {"$set": data},
+                upsert=True
+            )
+            print(f"Saved {phone['name']} to MongoDB")
+        except Exception as e:
+            print(f"Failed {phone['name']}: {e}")
+        time.sleep(2)
 
     print("Done!")
