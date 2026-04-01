@@ -15,11 +15,33 @@ spec = importlib.util.spec_from_file_location(
 )
 scraper_module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(scraper_module)
-scrape_phone_by_name = scraper_module.scrape_phone_by_name
 
 load_dotenv(Path(__file__).parent.parent / ".env")
 
 app = FastAPI()
+
+JSON_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "phone_names_and_urls.json")
+
+def scrape_phone_by_name(phone_name):
+    existing = scraper_module.collection.find_one({
+        "name": {"$regex": f"^{phone_name}$", "$options": "i"}
+    })
+    if existing:
+        return existing
+
+    result = scraper_module.search_gsmarena(phone_name, JSON_PATH)
+    if not result:
+        return None
+
+    data = scraper_module.scrape_phone(result["name"], result["url"])
+
+    scraper_module.collection.update_one(
+        {"name": result["name"]},
+        {"$set": data},
+        upsert=True
+    )
+
+    return data
 
 class CompareRequest(BaseModel):
     phone1: dict
